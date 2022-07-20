@@ -1,0 +1,26 @@
+pipeline {
+    agent any
+     tools {nodejs "Node"}
+    stages {
+        stage('Example') {
+            steps {
+                echo "Running ${env.BUILD_ID} on ${env.JENKINS_URL}"
+            }
+        }
+        stage('Build') {
+            steps {
+                echo "building the project"
+                sh 'git checkout main'
+                sh 'git pull'
+                sh 'npm i'
+            }
+        }
+         stage('Deploy') {
+            steps {
+                echo "deploying the project"
+                sh 'pm2 reload node-pm2.json'
+                sh 'pm2 save'
+            }
+        }
+    }
+}
