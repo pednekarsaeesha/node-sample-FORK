@@ -5,7 +5,7 @@ const logger = require('./logger')
 
 app.get('/', (req, res) => {
   logger.info("we have hit the get api")
-  res.send('Hello World! Its a new day ')
+  res.send('Hello cutie! Its a new day ')
 })
 
 app.get('/health', (req, res) => {
