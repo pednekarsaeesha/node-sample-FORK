@@ -52,5 +52,5 @@ jobs:
           # Install dependencies and restart the app
           cd /var/www/node-sample
           npm install
-          pm2 restart app || pm2 start npm --name "app" -- start
+          pm2 restart index.js || pm2 start index.js
         EOF
