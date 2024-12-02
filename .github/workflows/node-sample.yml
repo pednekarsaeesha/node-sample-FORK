@@ -1,0 +1,57 @@
+name: Node.js CI and Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - run: npm install
+
+    - name: Build the project
+      run: npm run build
+
+    - name: Deploy to EC2
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        NODE_ENV: production
+      run: |
+        echo "${SSH_PRIVATE_KEY}" > ec2-key.pem
+        chmod 600 ec2-key.pem
+        ssh -o StrictHostKeyChecking=no -i ec2-key.pem $EC2_USER@$EC2_HOST << 'EOF'
+          # Update system and dependencies
+          sudo apt-get update && sudo apt-get install -y nodejs npm
+          
+          # Clone or pull the latest code
+          if [ ! -d "/var/www/node-sample" ]; then
+            git clone https://github.com/your-repo/node-sample.git /var/www/node-sample
+          else
+            cd /var/www/node-sample
+            git pull
+          fi
+          
+          # Install dependencies and restart the app
+          cd /var/www/node-sample
+          npm install
+          npm run build
+          pm2 restart app || pm2 start npm --name "app" -- start
+        EOF
