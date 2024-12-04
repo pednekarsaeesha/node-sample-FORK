@@ -16,26 +16,30 @@ jobs:
 
     steps:
     # Step 1: Check out the repository
-    - name: Checkout code
+    - name: Checkout Repository
       uses: actions/checkout@v3
 
     # Step 2: Set up Node.js environment
-    - name: Set up Node.js ${{ matrix.node-version }}
+    - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
 
     # Step 3: Install project dependencies
-    - name: Install dependencies
-      run: npm install
+    - name: Install Dependencies
+      run: |
+        echo "📦 Installing Node.js dependencies"
+        npm install
 
     # Step 4: Build the project (if applicable)
-    - name: Build the project
-      run: npm run build --if-present
+    - name: Build Project
+      run: |
+        echo "🏗️ Building the project (if applicable)"
+        npm run build --if-present
 
     # Step 5: Deploy to EC2
-    - name: Deploy to EC2
+    - name: Deploy to EC2 Instance
       env:
         EC2_HOST: ${{ secrets.EC2_HOST }}
         EC2_USER: ${{ secrets.EC2_USER }}
@@ -46,13 +50,13 @@ jobs:
         echo "${SSH_PRIVATE_KEY}" > ec2-key.pem
         chmod 600 ec2-key.pem
         
-        echo "🚀 Connecting to EC2 and deploying application"
+        echo "🚀 Starting deployment on EC2"
         ssh -o StrictHostKeyChecking=no -i ec2-key.pem $EC2_USER@$EC2_HOST << 'EOF'
-          echo "📦 Updating system and installing dependencies"
+          echo "📦 Updating system packages and installing Node.js"
           sudo apt-get update -y
           sudo apt-get install -y nodejs npm git
 
-          echo "📂 Setting up project directory"
+          echo "📂 Preparing project directory"
           if [ ! -d "/var/www/node-sample" ]; then
             git clone https://github.com/pallavin21/node-sample-FORK.git /var/www/node-sample
           else
@@ -60,17 +64,10 @@ jobs:
             git pull
           fi
 
-          echo "📦 Installing project dependencies"
+          echo "📦 Installing application dependencies"
           cd /var/www/node-sample
           npm install
 
-          echo "🔄 Restarting application using PM2"
+          echo "🔄 Managing application using PM2"
           if ! command -v pm2 &> /dev/null; then
-            sudo npm install -g pm2
-          fi
-          pm2 start index.js --name node-app --env $NODE_ENV || pm2 restart node-app
-          pm2 save
-        EOF
-        
-        echo "🧹 Cleaning up"
-        rm -f ec2-key.pem
+            sudo npm
