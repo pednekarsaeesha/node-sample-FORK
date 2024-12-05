@@ -68,6 +68,8 @@ jobs:
           cd /var/www/node-sample
           npm install
 
-          echo "🔄 Managing application using PM2"
-          if ! command -v pm2 &> /dev/null; then
-            sudo npm
+          # Install dependencies and restart the app
+          cd /var/www/node-sample
+          npm install
+          pm2 restart app || pm2 start npm --name "app" -- start
+        EOF
