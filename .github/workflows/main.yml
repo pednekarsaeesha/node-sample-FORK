@@ -58,7 +58,7 @@ jobs:
 
           echo "📂 Preparing project directory"
           if [ ! -d "/var/www/node-sample" ]; then
-            git clone https://github.com/pallavin21/node-sample-FORK.git /var/www/node-sample
+            git clone https://github.com/pednekarsaeesha/node-sample-FORK.git /var/www/node-sample
           else
             cd /var/www/node-sample
             git pull
