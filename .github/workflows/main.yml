@@ -1,0 +1,75 @@
+name: Node.js CI and Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x, 16.x, 18.x]
+
+    steps:
+    # Step 1: Check out the repository
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    # Step 2: Set up Node.js environment
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    # Step 3: Install project dependencies
+    - name: Install Dependencies
+      run: |
+        echo "📦 Installing Node.js dependencies"
+        npm install
+
+    # Step 4: Build the project (if applicable)
+    - name: Build Project
+      run: |
+        echo "🏗️ Building the project (if applicable)"
+        npm run build --if-present
+
+    # Step 5: Deploy to EC2
+    - name: Deploy to EC2 Instance
+      env:
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        NODE_ENV: production
+      run: |
+        echo "🔐 Setting up SSH access"
+        echo "${SSH_PRIVATE_KEY}" > ec2-key.pem
+        chmod 600 ec2-key.pem
+        
+        echo "🚀 Starting deployment on EC2"
+        ssh -o StrictHostKeyChecking=no -i ec2-key.pem $EC2_USER@$EC2_HOST << 'EOF'
+          echo "📦 Updating system packages and installing Node.js"
+          sudo apt-get update -y
+          sudo apt-get install -y nodejs npm git
+
+          echo "📂 Preparing project directory"
+          if [ ! -d "/var/www/node-sample" ]; then
+            git clone https://github.com/pallavin21/node-sample-FORK.git /var/www/node-sample
+          else
+            cd /var/www/node-sample
+            git pull
+          fi
+
+          echo "📦 Installing application dependencies"
+          cd /var/www/node-sample
+          npm install
+
+          # Install dependencies and restart the app
+          cd /var/www/node-sample
+          npm install
+          pm2 restart index.js || pm2 start index.js
+        EOF
